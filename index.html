@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow - ระบบบริหารจัดการร้านตัดผม</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-scissors"></i>
+                    <span>Barber<span class="text-accent">Flow</span></span>
+                </div>
+                <button class="toggle-btn" id="toggle-sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=f59e0b&color=fff" alt="Admin"
+                    class="avatar">
+                <div class="user-info">
+                    <p class="user-name">ผู้ดูแลระบบ</p>
+                    <p class="user-role">Super Admin</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <p class="nav-title">เมนูหลัก</p>
+                <a href="#dashboard" class="nav-item active" data-target="dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>หน้าหลัก (Dashboard)</span>
+                </a>
+                <a href="#pos" class="nav-item" data-target="pos">
+                    <i class="fa-solid fa-cash-register"></i>
+                    <span>จุดชำระเงิน (POS)</span>
+                </a>
+                <a href="#booking" class="nav-item" data-target="booking">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>จัดการการจอง</span>
+                </a>
+                <a href="#queue" class="nav-item" data-target="queue">
+                    <i class="fa-solid fa-users-line"></i>
+                    <span>จัดการคิวหน้าร้าน</span>
+                </a>
+
+                <p class="nav-title">การจัดการ</p>
+                <a href="#customers" class="nav-item" data-target="customers">
+                    <i class="fa-solid fa-users"></i>
+                    <span>ลูกค้าและสมาชิก</span>
+                </a>
+                <a href="#staff" class="nav-item" data-target="staff">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span>ช่างและตารางงาน</span>
+                </a>
+                <a href="#services" class="nav-item" data-target="services">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>บริการและราคา</span>
+                </a>
+                <a href="#products" class="nav-item" data-target="products">
+                    <i class="fa-solid fa-box-open"></i>
+                    <span>สินค้าและสต็อก</span>
+                </a>
+
+                <p class="nav-title">รายงาน</p>
+                <a href="#reports" class="nav-item" data-target="reports">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>รายงานสรุปยอด</span>
+                </a>
+                <a href="#settings" class="nav-item" data-target="settings">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>ตั้งค่าระบบ</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-search">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" placeholder="ค้นหาลูกค้า, เบอร์โทร, เลขคิว...">
+                </div>
+                <div class="header-actions">
+                    <button class="action-btn" title="แจ้งเตือน">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="action-btn" title="โหมดออฟไลน์">
+                        <i class="fa-solid fa-wifi text-success"></i>
+                    </button>
+                    <div class="date-time" id="current-time">
+                        --:--
+                    </div>
+                </div>
+            </header>
+
+            <!-- Views Container -->
+            <div class="views-container">
+                <!-- Dashboard View -->
+                <div id="view-dashboard" class="view active">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">Dashboard ผู้บริหาร</h1>
+                            <p class="view-subtitle">ภาพรวมการดำเนินงานของร้านวันนี้</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-outline"><i class="fa-solid fa-download"></i> ส่งออกรายงาน</button>
+                            <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> เพิ่มการจองใหม่</button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon bg-accent-light">
+                                <i class="fa-solid fa-users text-accent"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>ลูกค้าวันนี้</h3>
+                                <div class="stat-value" id="stat-customers">0 <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 12%</span></div>
+                                <p>จากเมื่อวาน</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon bg-success-light">
+                                <i class="fa-solid fa-wallet text-success"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>รายได้วันนี้</h3>
+                                <div class="stat-value" id="stat-revenue">฿0 <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 8%</span></div>
+                                <p>เป้าหมาย: ฿40,000</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon bg-warning-light">
+                                <i class="fa-solid fa-hourglass-half text-warning"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>คิวรอปัจจุบัน</h3>
+                                <div class="stat-value" id="stat-waiting">0 <span class="trend negative"><i class="fa-solid fa-arrow-up"></i> รอเฉลี่ย 15 นาที</span></div>
+                                <p>คิวทั้งหมด: 42</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon bg-info-light">
+                                <i class="fa-solid fa-user-tie text-info"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>ช่างที่ทำงาน</h3>
+                                <div class="stat-value" id="stat-staff">0/0 <span class="trend">อัพเดตเรียลไทม์</span></div>
+                                <p>สาขาหลัก</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <!-- Queue Monitoring -->
+                        <div class="dashboard-panel glass-panel col-span-2">
+                            <div class="panel-header">
+                                <h2>คิวปัจจุบัน (Live)</h2>
+                                <a href="#queue" class="panel-link">ดูทั้งหมด</a>
+                            </div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>หมายเลขคิว</th>
+                                            <th>ลูกค้า</th>
+                                            <th>บริการ</th>
+                                            <th>ช่าง</th>
+                                            <th>สถานะ</th>
+                                            <th>เวลารอ</th>
+                                            <th>จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="queue-table-body">
+                                        <!-- Rendered by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Top Services -->
+                        <div class="dashboard-panel glass-panel">
+                            <div class="panel-header">
+                                <h2>บริการยอดนิยม</h2>
+                            </div>
+                            <div class="service-list">
+                                <div class="service-item">
+                                    <div class="service-info">
+                                        <h4>ตัดผมชาย (Modern)</h4>
+                                        <p>45 ครั้ง / วันนี้</p>
+                                    </div>
+                                    <div class="service-price">฿350</div>
+                                </div>
+                                <div class="service-item">
+                                    <div class="service-info">
+                                        <h4>ตัด+สระ+เซ็ท</h4>
+                                        <p>32 ครั้ง / วันนี้</p>
+                                    </div>
+                                    <div class="service-price">฿500</div>
+                                </div>
+                                <div class="service-item">
+                                    <div class="service-info">
+                                        <h4>ทำสี Highlight</h4>
+                                        <p>12 ครั้ง / วันนี้</p>
+                                    </div>
+                                    <div class="service-price">฿1,500</div>
+                                </div>
+                                <div class="service-item">
+                                    <div class="service-info">
+                                        <h4>โกนหนวด / ตกแต่ง</h4>
+                                        <p>28 ครั้ง / วันนี้</p>
+                                    </div>
+                                    <div class="service-price">฿200</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customers View -->
+                <div id="view-customers" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">จัดการลูกค้าและสมาชิก</h1>
+                            <p class="view-subtitle">ข้อมูลลูกค้าทั้งหมดในระบบ</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" onclick="openModal('modal-customer')"><i class="fa-solid fa-plus"></i> เพิ่มลูกค้าใหม่</button>
+                        </div>
+                    </div>
+                    <div class="dashboard-panel glass-panel">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>รหัส</th>
+                                        <th>ชื่อลูกค้า</th>
+                                        <th>เบอร์โทร</th>
+                                        <th>วันที่สมัคร</th>
+                                        <th>ระดับสมาชิก</th>
+                                        <th>แต้มสะสม</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customers-table-body">
+                                    <!-- Rendered by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staff View -->
+                <div id="view-staff" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">ช่างและตารางงาน</h1>
+                            <p class="view-subtitle">จัดการบุคลากรและช่างตัดผม</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" onclick="openModal('modal-staff')"><i class="fa-solid fa-plus"></i> เพิ่มช่างใหม่</button>
+                        </div>
+                    </div>
+                    <div class="stats-grid" id="staff-grid">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Services View -->
+                <div id="view-services" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">บริการและราคา</h1>
+                            <p class="view-subtitle">จัดการรายการบริการทั้งหมด</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" onclick="openModal('modal-service')"><i class="fa-solid fa-plus"></i> เพิ่มบริการใหม่</button>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-panel glass-panel col-span-2">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>หมวดหมู่</th>
+                                            <th>ชื่อบริการ</th>
+                                            <th>ระยะเวลา</th>
+                                            <th>ราคา</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="services-table-body">
+                                        <!-- Rendered by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POS View -->
+                <div id="view-pos" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">จุดชำระเงิน (POS)</h1>
+                            <p class="view-subtitle">คิดเงินและออกใบเสร็จ</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-panel glass-panel col-span-2">
+                            <div class="panel-header">
+                                <h2>รายการขายล่าสุด</h2>
+                            </div>
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>เลขที่บิล</th>
+                                            <th>ลูกค้า</th>
+                                            <th>ยอดรวม</th>
+                                            <th>วิธีชำระเงิน</th>
+                                            <th>วันที่/เวลา</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pos-table-body">
+                                        <!-- Rendered by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="dashboard-panel glass-panel">
+                            <div class="panel-header">
+                                <h2>คิดเงินใหม่</h2>
+                            </div>
+                            <div style="padding: 20px;">
+                                <button class="btn btn-primary" style="width: 100%; height: 60px; font-size: 1.2rem;" onclick="openModal('modal-pos')"><i class="fa-solid fa-cash-register"></i> สร้างบิลใหม่</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products View -->
+                <div id="view-products" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">สินค้าและสต็อก</h1>
+                            <p class="view-subtitle">จัดการสินค้าทั้งหมดในร้าน</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" onclick="openModal('modal-product')"><i class="fa-solid fa-plus"></i> เพิ่มสินค้าใหม่</button>
+                        </div>
+                    </div>
+                    <div class="dashboard-panel glass-panel">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>รหัสสินค้า</th>
+                                        <th>ชื่อสินค้า</th>
+                                        <th>หมวดหมู่</th>
+                                        <th>ราคาขาย</th>
+                                        <th>คงเหลือ</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                    <!-- Rendered by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports View -->
+                <div id="view-reports" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h1 class="view-title">รายงาน (Reports)</h1>
+                            <p class="view-subtitle">ดูสรุปสถิติและยอดขาย</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-panel glass-panel col-span-2">
+                            <div class="panel-header">
+                                <h2>รายได้ 7 วันล่าสุด</h2>
+                            </div>
+                            <div style="padding: 20px; height: 300px; position: relative;">
+                                <!-- Chart placeholder -->
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="dashboard-panel glass-panel">
+                            <div class="panel-header">
+                                <h2>สัดส่วนบริการที่ขายดี</h2>
+                            </div>
+                            <div style="padding: 20px; height: 300px; position: relative; display: flex; justify-content: center;">
+                                <canvas id="serviceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder for other views -->
+                <div id="view-placeholder" class="view">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-person-digging"></i>
+                        <h2>กำลังพัฒนาส่วนนี้</h2>
+                        <p>โมดูล <span id="placeholder-name" class="text-accent"></span> ตามข้อกำหนด SRS
+                            อยู่ระหว่างการจัดทำ</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Customer Modal -->
+    <div id="modal-customer" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">เพิ่มลูกค้าใหม่</h2>
+                <span class="close-btn" onclick="closeModal('modal-customer')"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+            <form id="form-customer">
+                <input type="hidden" id="cust-id">
+                <div class="form-group">
+                    <label for="cust-name">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                    <input type="text" id="cust-name" class="form-control" required placeholder="เช่น สมชาย ใจดี">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cust-phone">เบอร์โทรศัพท์ <span class="text-danger">*</span></label>
+                        <input type="tel" id="cust-phone" class="form-control" required placeholder="08X-XXX-XXXX">
+                    </div>
+                    <div class="form-group">
+                        <label for="cust-tier">ระดับสมาชิก</label>
+                        <select id="cust-tier" class="form-control">
+                            <option value="Bronze">Bronze (เริ่มต้น)</option>
+                            <option value="Silver">Silver</option>
+                            <option value="Gold">Gold</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cust-email">อีเมล</label>
+                    <input type="email" id="cust-email" class="form-control" placeholder="example@email.com">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-customer')">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div id="modal-staff" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">เพิ่มช่างใหม่</h2>
+                <span class="close-btn" onclick="closeModal('modal-staff')"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+            <form id="form-staff">
+                <input type="hidden" id="staff-id">
+                <div class="form-group">
+                    <label for="staff-name">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                    <input type="text" id="staff-name" class="form-control" required placeholder="เช่น เอกชัย รักผม">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="staff-nickname">ชื่อเล่น <span class="text-danger">*</span></label>
+                        <input type="text" id="staff-nickname" class="form-control" required placeholder="เช่น เอก">
+                    </div>
+                    <div class="form-group">
+                        <label for="staff-exp">ประสบการณ์</label>
+                        <input type="text" id="staff-exp" class="form-control" placeholder="เช่น 5 ปี">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="staff-role">ตำแหน่ง / ความเชี่ยวชาญ <span class="text-danger">*</span></label>
+                    <input type="text" id="staff-role" class="form-control" required placeholder="เช่น Senior Barber">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-staff')">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Service Modal -->
+    <div id="modal-service" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">เพิ่มบริการใหม่</h2>
+                <span class="close-btn" onclick="closeModal('modal-service')"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+            <form id="form-service">
+                <input type="hidden" id="serv-id">
+                <div class="form-group">
+                    <label for="serv-name">ชื่อบริการ <span class="text-danger">*</span></label>
+                    <input type="text" id="serv-name" class="form-control" required placeholder="เช่น ตัดผมชาย (Standard)">
+                </div>
+                <div class="form-group">
+                    <label for="serv-cat">หมวดหมู่ <span class="text-danger">*</span></label>
+                    <select id="serv-cat" class="form-control">
+                        <option value="ตัดผม">ตัดผม</option>
+                        <option value="ทำสี">ทำสี</option>
+                        <option value="ดัดผม">ดัดผม</option>
+                        <option value="บริการเสริม">บริการเสริม</option>
+                        <option value="แพ็คเกจ">แพ็คเกจ</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="serv-price">ราคา (บาท) <span class="text-danger">*</span></label>
+                        <input type="number" id="serv-price" class="form-control" required min="0" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="serv-duration">ระยะเวลา (นาที)</label>
+                        <input type="text" id="serv-duration" class="form-control" placeholder="เช่น 45 นาที">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-service')">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="modal-product" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">เพิ่มสินค้าใหม่</h2>
+                <span class="close-btn" onclick="closeModal('modal-product')"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+            <form id="form-product">
+                <input type="hidden" id="prod-id">
+                <div class="form-group">
+                    <label for="prod-name">ชื่อสินค้า <span class="text-danger">*</span></label>
+                    <input type="text" id="prod-name" class="form-control" required placeholder="เช่น แชมพู">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prod-cat">หมวดหมู่ <span class="text-danger">*</span></label>
+                        <select id="prod-cat" class="form-control">
+                            <option value="แชมพู/ครีมนวด">แชมพู/ครีมนวด</option>
+                            <option value="เครื่องแต่งผม">เครื่องแต่งผม</option>
+                            <option value="เซรั่มบำรุง">เซรั่มบำรุง</option>
+                            <option value="อุปกรณ์">อุปกรณ์</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-price">ราคา (บาท) <span class="text-danger">*</span></label>
+                        <input type="number" id="prod-price" class="form-control" required min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prod-stock">จำนวนคงเหลือ <span class="text-danger">*</span></label>
+                        <input type="number" id="prod-stock" class="form-control" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="prod-unit">หน่วยนับ</label>
+                        <input type="text" id="prod-unit" class="form-control" value="ชิ้น">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-product')">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add POS Modal (Checkout) -->
+    <div id="modal-pos" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">ออกบิลชำระเงิน</h2>
+                <span class="close-btn" onclick="closeModal('modal-pos')"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+            <form id="form-pos">
+                <div class="form-group">
+                    <label for="pos-customer">ชื่อลูกค้า (ถ้ามี)</label>
+                    <input type="text" id="pos-customer" class="form-control" placeholder="เช่น ลูกค้าทั่วไป">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="pos-total">ยอดรวมทั้งหมด (บาท) <span class="text-danger">*</span></label>
+                        <input type="number" id="pos-total" class="form-control" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="pos-payment">วิธีชำระเงิน</label>
+                        <select id="pos-payment" class="form-control">
+                            <option value="เงินสด">เงินสด</option>
+                            <option value="เงินโอน">โอนเงิน (QR)</option>
+                            <option value="บัตรเครดิต">บัตรเครดิต</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-pos')">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" style="background-color: var(--success);"><i class="fa-solid fa-check"></i> ยืนยันชำระเงิน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

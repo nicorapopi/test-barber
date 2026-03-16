@@ -1,0 +1,5 @@
+{
+	"devDependencies": {
+		"local-web-server": "^5.4.0"
+	}
+}
