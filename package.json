@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "serve": "local-web-server --spa index.html --port 4173",
+    "serve": "npx local-web-server --spa index.html --port 4173",
     "start:backend": "cd barber-server && npm run start"
   },
   "devDependencies": {

@@ -11,6 +11,12 @@ services:
         value: 3000
       - key: NODE_ENV
         value: production
+      - key: DB_CLIENT
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: barber-postgres
+          property: connectionString
 
 databases:
   - name: barber-postgres

@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS customers (
     email TEXT,
     join_date DATE,
     points INTEGER DEFAULT 0,
-    member_tier TEXT DEFAULT 'Bronze'
+    member_tier TEXT DEFAULT 'Bronze',
+    birth_date DATE
 );
 
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
@@ -61,6 +62,10 @@ CREATE TABLE IF NOT EXISTS orders (
     bill_no TEXT NOT NULL,
     customer_name TEXT NOT NULL,
     total_amount NUMERIC(10,2) NOT NULL,
+    discount_amount NUMERIC(10,2) DEFAULT 0,
+    net_amount NUMERIC(10,2) DEFAULT 0,
+    points_earned INTEGER DEFAULT 0,
+    points_used INTEGER DEFAULT 0,
     payment_method TEXT NOT NULL,
     order_date TIMESTAMPTZ NOT NULL
 );

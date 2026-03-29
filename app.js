@@ -195,45 +195,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* --- 3.6 Reports Rendering --- */
     window.reportsInitialized = false;
-    function fetchAndRenderReports() {
+    async function fetchAndRenderReports() {
         if(window.reportsInitialized) return;
-        
-        // Mock Chart Data for Revenue
-        const ctxRev = document.getElementById('revenueChart');
-        if(ctxRev) {
-            new Chart(ctxRev, {
-                type: 'line',
-                data: {
-                    labels: ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์', 'อาทิตย์'],
-                    datasets: [{
-                        label: 'รายได้ (บาท)',
-                        data: [12000, 15000, 11000, 14000, 22000, 31000, 28000],
-                        borderColor: '#f59e0b',
-                        tension: 0.3,
-                        fill: true,
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)'
-                    }]
-                },
-                options: { maintainAspectRatio: false }
-            });
+
+        try {
+            const [revenueResponse, serviceResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/reports/revenue-week`),
+                fetch(`${API_BASE_URL}/api/reports/services`)
+            ]);
+
+            const revenue = await revenueResponse.json();
+            const service = await serviceResponse.json();
+
+            const ctxRev = document.getElementById('revenueChart');
+            if(ctxRev) {
+                new Chart(ctxRev, {
+                    type: 'line',
+                    data: {
+                        labels: revenue.labels || [],
+                        datasets: [{
+                            label: 'รายได้ (บาท)',
+                            data: revenue.data || [],
+                            borderColor: '#f59e0b',
+                            tension: 0.3,
+                            fill: true,
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)'
+                        }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
+            }
+
+            const ctxServ = document.getElementById('serviceChart');
+            if(ctxServ) {
+                new Chart(ctxServ, {
+                    type: 'doughnut',
+                    data: {
+                        labels: service.labels || [],
+                        datasets: [{
+                            data: service.data || [],
+                            backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#6366f1', '#ec4899', '#84cc16']
+                        }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
+            }
+            window.reportsInitialized = true;
+        } catch (error) {
+            console.error('Error fetching reports:', error);
         }
-        
-        // Mock Chart Data for Services
-        const ctxServ = document.getElementById('serviceChart');
-        if(ctxServ) {
-            new Chart(ctxServ, {
-                type: 'doughnut',
-                data: {
-                    labels: ['ตัดผมชาย', 'ทำสี', 'ดัดผม', 'แพ็คเกจ'],
-                    datasets: [{
-                        data: [45, 25, 20, 10],
-                        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#6366f1']
-                    }]
-                },
-                options: { maintainAspectRatio: false }
-            });
-        }
-        window.reportsInitialized = true;
     }
 
     /* --- 4. Customers rendering --- */

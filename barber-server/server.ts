@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import path from 'path';
+import dotenv from 'dotenv';
+import { Pool } from 'pg';
+
+dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -12,8 +15,137 @@ app.use(express.json());
 
 // Initialize SQLite database
 let db: any;
+const isPostgres = process.env.DB_CLIENT === 'postgres' || !!process.env.DATABASE_URL;
+
+function toPostgresParams(sql: string) {
+    let idx = 0;
+    return sql.replace(/\?/g, () => `$${++idx}`);
+}
+
+function createPgDb(pool: any) {
+    return {
+        exec: async (sql: string) => {
+            await pool.query(sql);
+        },
+        run: async (sql: string, params: any[] = []) => {
+            const mappedSql = toPostgresParams(sql);
+            const isInsert = /^\s*insert\s+/i.test(mappedSql);
+            const hasReturning = /\sreturning\s+/i.test(mappedSql);
+            const finalSql = isInsert && !hasReturning ? `${mappedSql} RETURNING id` : mappedSql;
+            const result = await pool.query(finalSql, params);
+            return { lastID: result.rows?.[0]?.id };
+        },
+        get: async (sql: string, params: any[] = []) => {
+            const result = await pool.query(toPostgresParams(sql), params);
+            return result.rows[0];
+        },
+        all: async (sql: string, params: any[] = []) => {
+            const result = await pool.query(toPostgresParams(sql), params);
+            return result.rows;
+        }
+    };
+}
+
+async function ensureColumn(tableName: string, columnName: string, columnDef: string) {
+    if (isPostgres) {
+        const result = await db.get(
+            `SELECT 1 as found
+             FROM information_schema.columns
+             WHERE table_name = ? AND column_name = ?`,
+            [tableName.toLowerCase(), columnName.toLowerCase()]
+        );
+        if (!result) {
+            await db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
+        }
+        return;
+    }
+
+    const columns = await db.all(`PRAGMA table_info(${tableName})`);
+    const exists = columns.some((col: any) => col.name === columnName);
+    if (!exists) {
+        await db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
+    }
+}
 
 async function setupDatabase() {
+    if (isPostgres) {
+        const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        });
+        db = createPgDb(pool);
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS queues (
+                id SERIAL PRIMARY KEY,
+                queueNo TEXT NOT NULL,
+                customerName TEXT NOT NULL,
+                service TEXT NOT NULL,
+                barber TEXT NOT NULL,
+                status TEXT NOT NULL,
+                waitTime TEXT,
+                avatarKey TEXT,
+                statusClass TEXT
+            );
+        `);
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS customers (
+                id SERIAL PRIMARY KEY,
+                code TEXT NOT NULL,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                email TEXT,
+                joinDate TEXT,
+                points INTEGER DEFAULT 0,
+                memberTier TEXT DEFAULT 'Bronze'
+            );
+        `);
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS staff (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                nickname TEXT NOT NULL,
+                role TEXT NOT NULL,
+                status TEXT DEFAULT 'ทำงาน',
+                experience TEXT
+            );
+        `);
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS services (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                price NUMERIC(10,2) NOT NULL,
+                duration TEXT NOT NULL
+            );
+        `);
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                code TEXT NOT NULL,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                price NUMERIC(10,2) NOT NULL,
+                stock INTEGER NOT NULL,
+                unit TEXT DEFAULT 'ชิ้น'
+            );
+        `);
+
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id SERIAL PRIMARY KEY,
+                billNo TEXT NOT NULL,
+                customerName TEXT NOT NULL,
+                totalAmount NUMERIC(10,2) NOT NULL,
+                paymentMethod TEXT NOT NULL,
+                orderDate TIMESTAMPTZ NOT NULL
+            );
+        `);
+    } else {
     db = await open({
         filename: 'barber.db',
         driver: sqlite3.Database
@@ -95,6 +227,14 @@ async function setupDatabase() {
             orderDate TEXT NOT NULL
         );
     `);
+    }
+
+    // Incremental schema updates for richer business logic
+    await ensureColumn('customers', 'birthDate', 'TEXT');
+    await ensureColumn('orders', 'discountAmount', 'REAL DEFAULT 0');
+    await ensureColumn('orders', 'netAmount', 'REAL DEFAULT 0');
+    await ensureColumn('orders', 'pointsEarned', 'INTEGER DEFAULT 0');
+    await ensureColumn('orders', 'pointsUsed', 'INTEGER DEFAULT 0');
 
     // Insert mock data if empty
     const queueCount = await db.get('SELECT COUNT(*) as count FROM queues');
@@ -221,7 +361,13 @@ app.delete('/api/queues/:id', async (req, res) => {
 // Customers
 app.get('/api/customers', async (req, res) => {
     try {
-        const customers = await db.all('SELECT * FROM customers ORDER BY id DESC');
+        const q = String(req.query.q || '').trim();
+        const customers = q
+            ? await db.all(
+                'SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY id DESC',
+                [`%${q}%`, `%${q}%`]
+            )
+            : await db.all('SELECT * FROM customers ORDER BY id DESC');
         res.json(customers);
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch customers' });
@@ -229,14 +375,14 @@ app.get('/api/customers', async (req, res) => {
 });
 
 app.post('/api/customers', async (req, res) => {
-    const { name, phone, email, memberTier } = req.body;
+    const { name, phone, email, memberTier, birthDate } = req.body;
     const code = 'C' + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
     const joinDate = new Date().toISOString().split('T')[0];
     
     try {
         const result = await db.run(
-            'INSERT INTO customers (code, name, phone, email, joinDate, points, memberTier) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [code, name, phone, email || '', joinDate, 0, memberTier || 'Bronze']
+            'INSERT INTO customers (code, name, phone, email, joinDate, points, memberTier, birthDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [code, name, phone, email || '', joinDate, 0, memberTier || 'Bronze', birthDate || null]
         );
         const newCustomer = await db.get('SELECT * FROM customers WHERE id = ?', result.lastID);
         res.status(201).json(newCustomer);
@@ -247,11 +393,11 @@ app.post('/api/customers', async (req, res) => {
 
 app.put('/api/customers/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, phone, email, memberTier } = req.body;
+    const { name, phone, email, memberTier, birthDate } = req.body;
     try {
         await db.run(
-            'UPDATE customers SET name = ?, phone = ?, email = ?, memberTier = ? WHERE id = ?',
-            [name, phone, email, memberTier, id]
+            'UPDATE customers SET name = ?, phone = ?, email = ?, memberTier = ?, birthDate = ? WHERE id = ?',
+            [name, phone, email, memberTier, birthDate || null, id]
         );
         res.json({ message: 'Customer updated successfully' });
     } catch (err) {
@@ -403,31 +549,65 @@ app.get('/api/orders', async (req, res) => {
 });
 
 app.post('/api/orders', async (req, res) => {
-    const { customerName, totalAmount, paymentMethod } = req.body;
+    const { customerName, totalAmount, paymentMethod, pointsUsed = 0 } = req.body;
     const billNo = 'INV' + new Date().getTime().toString().slice(-6);
     const orderDate = new Date().toISOString();
 
     try {
+        const rawTotal = Number(totalAmount || 0);
+        const usePoints = Math.max(0, Number(pointsUsed || 0));
+        let discountAmount = 0;
+        let calculatedPointsEarned = Math.floor(rawTotal);
+        let customer: any = null;
+
+        if (customerName) {
+            customer = await db.get('SELECT * FROM customers WHERE name = ?', [customerName]);
+        }
+
+        if (customer) {
+            const tierDiscountRateMap: Record<string, number> = {
+                Bronze: 0,
+                Silver: 0.05,
+                Gold: 0.1,
+                Platinum: 0.2
+            };
+            const tierRate = tierDiscountRateMap[customer.memberTier] || 0;
+            discountAmount += rawTotal * tierRate;
+
+            // Birthday x2 points if same day/month
+            if (customer.birthDate) {
+                const birth = new Date(customer.birthDate);
+                const now = new Date();
+                const isBirthday = birth.getDate() === now.getDate() && birth.getMonth() === now.getMonth();
+                if (isBirthday) calculatedPointsEarned *= 2;
+            }
+        }
+
+        const maxPointsUsable = customer ? (customer.points || 0) : 0;
+        const actualPointsUsed = Math.min(usePoints, maxPointsUsable);
+        const netAmount = Math.max(0, rawTotal - discountAmount - actualPointsUsed);
+
         const result = await db.run(
-            'INSERT INTO orders (billNo, customerName, totalAmount, paymentMethod, orderDate) VALUES (?, ?, ?, ?, ?)',
-            [billNo, customerName || 'ลูกค้าทั่วไป', totalAmount, paymentMethod || 'เงินสด', orderDate]
+            `INSERT INTO orders 
+            (billNo, customerName, totalAmount, paymentMethod, orderDate, discountAmount, netAmount, pointsEarned, pointsUsed) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                billNo,
+                customerName || 'ลูกค้าทั่วไป',
+                rawTotal,
+                paymentMethod || 'เงินสด',
+                orderDate,
+                discountAmount,
+                netAmount,
+                calculatedPointsEarned,
+                actualPointsUsed
+            ]
         );
 
-        // basic membership points logic: 1 บาท = 1 แต้ม
-        if (customerName) {
-            const customer = await db.get(
-                'SELECT * FROM customers WHERE name = ?',
-                [customerName]
-            );
-            if (customer) {
-                const currentPoints = customer.points || 0;
-                const earnedPoints = Math.floor(totalAmount || 0);
-                const newPoints = currentPoints + earnedPoints;
-                await db.run(
-                    'UPDATE customers SET points = ? WHERE id = ?',
-                    [newPoints, customer.id]
-                );
-            }
+        if (customer) {
+            const currentPoints = customer.points || 0;
+            const newPoints = Math.max(0, currentPoints - actualPointsUsed + calculatedPointsEarned);
+            await db.run('UPDATE customers SET points = ? WHERE id = ?', [newPoints, customer.id]);
         }
 
         const newOrder = await db.get('SELECT * FROM orders WHERE id = ?', result.lastID);
@@ -441,12 +621,16 @@ app.get('/api/stats', async (req, res) => {
     try {
         // Customers today = จำนวนบิลวันนี้ (ประมาณจำนวนลูกค้าที่ใช้บริการ)
         const customersTodayResult = await db.get(
-            "SELECT COUNT(*) as count FROM orders WHERE date(orderDate) = date('now')"
+            isPostgres
+                ? "SELECT COUNT(*)::int as count FROM orders WHERE CAST(orderDate AS date) = CURRENT_DATE"
+                : "SELECT COUNT(*) as count FROM orders WHERE date(orderDate) = date('now')"
         );
 
         // Revenue today = ผลรวมยอดขายวันนี้
         const ordersResult = await db.get(
-            "SELECT SUM(totalAmount) as total FROM orders WHERE date(orderDate) = date('now')"
+            isPostgres
+                ? "SELECT SUM(COALESCE(netAmount, totalAmount)) as total FROM orders WHERE CAST(orderDate AS date) = CURRENT_DATE"
+                : "SELECT SUM(COALESCE(netAmount, totalAmount)) as total FROM orders WHERE date(orderDate) = date('now')"
         );
 
         // Current waiting
@@ -471,6 +655,63 @@ app.get('/api/stats', async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+});
+
+app.get('/api/reports/revenue-week', async (req, res) => {
+    try {
+        const rows = await db.all(
+            isPostgres
+                ? `
+                SELECT CAST(orderDate AS date) as d, SUM(COALESCE(netAmount, totalAmount)) as total
+                FROM orders
+                WHERE CAST(orderDate AS date) >= CURRENT_DATE - INTERVAL '6 day'
+                GROUP BY CAST(orderDate AS date)
+                ORDER BY CAST(orderDate AS date)
+            `
+                : `
+                SELECT date(orderDate) as d, SUM(COALESCE(netAmount, totalAmount)) as total
+                FROM orders
+                WHERE date(orderDate) >= date('now', '-6 day')
+                GROUP BY date(orderDate)
+                ORDER BY date(orderDate)
+            `
+        );
+
+        const dayMap = new Map<string, number>();
+        rows.forEach((r: any) => dayMap.set(r.d, Number(r.total || 0)));
+
+        const labels: string[] = [];
+        const data: number[] = [];
+        for (let i = 6; i >= 0; i -= 1) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const iso = d.toISOString().slice(0, 10);
+            labels.push(d.toLocaleDateString('th-TH', { weekday: 'short' }));
+            data.push(dayMap.get(iso) || 0);
+        }
+
+        res.json({ labels, data });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch weekly revenue report' });
+    }
+});
+
+app.get('/api/reports/services', async (req, res) => {
+    try {
+        const rows = await db.all(`
+            SELECT service as name, COUNT(*) as count
+            FROM queues
+            GROUP BY service
+            ORDER BY count DESC
+            LIMIT 6
+        `);
+        res.json({
+            labels: rows.map((r: any) => r.name),
+            data: rows.map((r: any) => Number(r.count || 0))
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch service report' });
     }
 });
 
