@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "nodemon --watch server.ts --exec node --loader ts-node/esm server.ts",
+    "start": "node --loader ts-node/esm server.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

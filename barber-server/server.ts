@@ -5,7 +5,7 @@ import { open } from 'sqlite';
 import path from 'path';
 
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -406,12 +406,30 @@ app.post('/api/orders', async (req, res) => {
     const { customerName, totalAmount, paymentMethod } = req.body;
     const billNo = 'INV' + new Date().getTime().toString().slice(-6);
     const orderDate = new Date().toISOString();
-    
+
     try {
         const result = await db.run(
             'INSERT INTO orders (billNo, customerName, totalAmount, paymentMethod, orderDate) VALUES (?, ?, ?, ?, ?)',
             [billNo, customerName || 'ลูกค้าทั่วไป', totalAmount, paymentMethod || 'เงินสด', orderDate]
         );
+
+        // basic membership points logic: 1 บาท = 1 แต้ม
+        if (customerName) {
+            const customer = await db.get(
+                'SELECT * FROM customers WHERE name = ?',
+                [customerName]
+            );
+            if (customer) {
+                const currentPoints = customer.points || 0;
+                const earnedPoints = Math.floor(totalAmount || 0);
+                const newPoints = currentPoints + earnedPoints;
+                await db.run(
+                    'UPDATE customers SET points = ? WHERE id = ?',
+                    [newPoints, customer.id]
+                );
+            }
+        }
+
         const newOrder = await db.get('SELECT * FROM orders WHERE id = ?', result.lastID);
         res.status(201).json(newOrder);
     } catch (err) {
@@ -421,30 +439,35 @@ app.post('/api/orders', async (req, res) => {
 
 app.get('/api/stats', async (req, res) => {
     try {
-        const today = new Date().toISOString().split('T')[0];
-        // 1. Customers today (Count from queues where date is today, wait since we don't have date we'll just count total queues for mock)
-        const queues = await db.all('SELECT * FROM queues');
-        const totalCustomers = queues.length + Math.floor(Math.random() * 10); // Mock data for today
-        
-        // 2. Revenue today
-        const ordersResult = await db.get("SELECT sum(totalAmount) as total FROM orders WHERE date(orderDate) = date('now')");
-        // add mock base revenue if orders are empty today for demo purposes
-        const revenue = (ordersResult.total || 0) + 12500; 
+        // Customers today = จำนวนบิลวันนี้ (ประมาณจำนวนลูกค้าที่ใช้บริการ)
+        const customersTodayResult = await db.get(
+            "SELECT COUNT(*) as count FROM orders WHERE date(orderDate) = date('now')"
+        );
 
-        // 3. Current waiting
-        const waitingResult = await db.get("SELECT count(*) as count FROM queues WHERE status = 'รอคิว'");
-        const waiting = waitingResult.count;
+        // Revenue today = ผลรวมยอดขายวันนี้
+        const ordersResult = await db.get(
+            "SELECT SUM(totalAmount) as total FROM orders WHERE date(orderDate) = date('now')"
+        );
 
-        // 4. Staff working
-        const staffWorkingResult = await db.get("SELECT count(*) as count FROM staff WHERE status = 'ทำงาน'");
-        const staffTotalResult = await db.get("SELECT count(*) as count FROM staff");
+        // Current waiting
+        const waitingResult = await db.get(
+            "SELECT COUNT(*) as count FROM queues WHERE status = 'รอคิว'"
+        );
+
+        // Staff working
+        const staffWorkingResult = await db.get(
+            "SELECT COUNT(*) as count FROM staff WHERE status = 'ทำงาน'"
+        );
+        const staffTotalResult = await db.get(
+            "SELECT COUNT(*) as count FROM staff"
+        );
 
         res.json({
-            customersToday: totalCustomers,
-            revenueToday: revenue,
-            queueWaiting: waiting,
-            staffWorking: staffWorkingResult.count,
-            staffTotal: staffTotalResult.count
+            customersToday: customersTodayResult.count || 0,
+            revenueToday: ordersResult.total || 0,
+            queueWaiting: waitingResult.count || 0,
+            staffWorking: staffWorkingResult.count || 0,
+            staffTotal: staffTotalResult.count || 0
         });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch stats' });

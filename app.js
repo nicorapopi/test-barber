@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* --- 3. API Data Rendering (Queue) --- */
-    const API_URL = 'http://localhost:3000/api/queues';
+    const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000';
+    const API_URL = `${API_BASE_URL}/api/queues`;
     const queueTableBody = document.getElementById('queue-table-body');
 
     async function fetchAndRenderQueue() {
@@ -164,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* --- 3.5 API Data Rendering (Dashboard Stats) --- */
     async function fetchAndRenderStats() {
         try {
-            const response = await fetch('http://localhost:3000/api/stats');
+            const response = await fetch(`${API_BASE_URL}/api/stats`);
             const stats = await response.json();
             
             document.getElementById('stat-customers').innerHTML = `${stats.customersToday} <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> 12%</span>`;
@@ -245,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndRenderCustomers() {
         if(!customersTableBody) return;
         try {
-            const response = await fetch('http://localhost:3000/api/customers');
+            const response = await fetch(`${API_BASE_URL}/api/customers`);
             const customers = await response.json();
             window.globalCustomers = customers;
             customersTableBody.innerHTML = '';
@@ -285,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.deleteCustomer = async (id) => {
         if (confirm('คุณต้องการลบลูกค้านี้ใช่หรือไม่?')) {
             try {
-                await fetch(`http://localhost:3000/api/customers/${id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/api/customers/${id}`, { method: 'DELETE' });
                 fetchAndRenderCustomers();
             } catch (error) {
                 console.error('Error deleting customer:', error);
@@ -298,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndRenderStaff() {
         if(!staffGrid) return;
         try {
-            const response = await fetch('http://localhost:3000/api/staff');
+            const response = await fetch(`${API_BASE_URL}/api/staff`);
             const staffList = await response.json();
             window.globalStaff = staffList;
             staffGrid.innerHTML = '';
@@ -340,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndRenderServices() {
         if(!servicesTableBody) return;
         try {
-            const response = await fetch('http://localhost:3000/api/services');
+            const response = await fetch(`${API_BASE_URL}/api/services`);
             const services = await response.json();
             window.globalServices = services;
             servicesTableBody.innerHTML = '';
@@ -369,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndRenderProducts() {
         if(!productsTableBody) return;
         try {
-            const response = await fetch('http://localhost:3000/api/products');
+            const response = await fetch(`${API_BASE_URL}/api/products`);
             const products = await response.json();
             window.globalProducts = products;
             productsTableBody.innerHTML = '';
@@ -400,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.deleteProduct = async (id) => {
         if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
             try {
-                await fetch(`http://localhost:3000/api/products/${id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/api/products/${id}`, { method: 'DELETE' });
                 fetchAndRenderProducts();
             } catch (error) {
                 console.error('Error deleting product:', error);
@@ -412,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndRenderPOS() {
         if(!posTableBody) return;
         try {
-            const response = await fetch('http://localhost:3000/api/orders');
+            const response = await fetch(`${API_BASE_URL}/api/orders`);
             const orders = await response.json();
             posTableBody.innerHTML = '';
             orders.forEach(o => {
@@ -515,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const id = document.getElementById('cust-id').value;
             const method = id ? 'PUT' : 'POST';
-            const url = id ? `http://localhost:3000/api/customers/${id}` : 'http://localhost:3000/api/customers';
+            const url = id ? `${API_BASE_URL}/api/customers/${id}` : `${API_BASE_URL}/api/customers`;
             
             const data = {
                 name: document.getElementById('cust-name').value,
@@ -549,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const id = document.getElementById('staff-id').value;
             const method = id ? 'PUT' : 'POST';
-            const url = id ? `http://localhost:3000/api/staff/${id}` : 'http://localhost:3000/api/staff';
+            const url = id ? `${API_BASE_URL}/api/staff/${id}` : `${API_BASE_URL}/api/staff`;
             
             const data = {
                 name: document.getElementById('staff-name').value,
@@ -583,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const id = document.getElementById('serv-id').value;
             const method = id ? 'PUT' : 'POST';
-            const url = id ? `http://localhost:3000/api/services/${id}` : 'http://localhost:3000/api/services';
+            const url = id ? `${API_BASE_URL}/api/services/${id}` : `${API_BASE_URL}/api/services`;
             
             const data = {
                 name: document.getElementById('serv-name').value,
@@ -617,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const id = document.getElementById('prod-id').value;
             const method = id ? 'PUT' : 'POST';
-            const url = id ? `http://localhost:3000/api/products/${id}` : 'http://localhost:3000/api/products';
+            const url = id ? `${API_BASE_URL}/api/products/${id}` : `${API_BASE_URL}/api/products`;
             
             const data = {
                 name: document.getElementById('prod-name').value,
@@ -656,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentMethod: document.getElementById('pos-payment').value
             };
             try {
-                await fetch('http://localhost:3000/api/orders', {
+                await fetch(`${API_BASE_URL}/api/orders`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)

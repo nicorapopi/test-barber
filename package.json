@@ -1,5 +1,9 @@
 {
-	"devDependencies": {
-		"local-web-server": "^5.4.0"
-	}
+  "scripts": {
+    "serve": "local-web-server --spa index.html --port 4173",
+    "start:backend": "cd barber-server && npm run start"
+  },
+  "devDependencies": {
+    "local-web-server": "^5.4.0"
+  }
 }
